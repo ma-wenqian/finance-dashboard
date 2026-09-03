@@ -6,9 +6,9 @@
   { "id": "cn_sv_wechat",  "name": "微信零钱",      "region": "cn", "kind": "savings",    "ccy": "CNY",  "limit": null, "note": "", "active": true },
   { "id": "cn_sv_alipay",  "name": "支付宝",        "region": "cn", "kind": "savings",    "ccy": "CNY",  "limit": null, "note": "", "active": true },
 
-  { "id": "cn_cc_cmb",     "name": "招行 信用卡",   "region": "cn", "kind": "credit",     "ccy": "CNY",  "limit": 80000, "note": "填了额度就能用「可用额度」反推欠款", "active": true },
-  { "id": "cn_cc_citic",   "name": "中信 信用卡",   "region": "cn", "kind": "credit",     "ccy": "CNY",  "limit": 50000, "note": "", "active": true },
-  { "id": "cn_cc_huabei",  "name": "花呗",          "region": "cn", "kind": "credit",     "ccy": "CNY",  "limit": 28000, "note": "", "active": true },
+  { "id": "cn_cc_cmb",     "name": "招行 信用卡",   "region": "cn", "kind": "credit",     "ccy": "CNY",  "limit": 40000, "note": "填了额度就能用「可用额度」反推欠款", "active": true },
+  { "id": "cn_cc_citic",   "name": "中信 信用卡",   "region": "cn", "kind": "credit",     "ccy": "CNY",  "limit": 20000, "note": "", "active": true },
+  { "id": "cn_cc_huabei",  "name": "花呗",          "region": "cn", "kind": "credit",     "ccy": "CNY",  "limit": 12000, "note": "", "active": true },
 
   { "id": "cn_rc_pending", "name": "待入账 / 报销", "region": "cn", "kind": "receivable", "ccy": "CNY",  "limit": null, "note": "已花出去、等着报销回来的钱", "active": true },
 

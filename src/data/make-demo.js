@@ -3,6 +3,10 @@
  * 全是编的，只为让演示页面的图表有内容可看。数字写死不随机，
  * 这样每次构建产物一致，diff 才有意义。
  *
+ * 设计意图：总资产走一条「从欠着钱到还清转正」的弧线，
+ * 落在 -20000 ~ +20000 之间 —— 既贴近多数人的真实量级，
+ * 也能顺带展示跨零时那条虚线和负数配色。
+ *
  * 用法：node src/data/make-demo.js
  */
 const fs = require('fs');
@@ -11,35 +15,35 @@ const path = require('path');
 const MONTHS = ['2026-03-05', '2026-04-04', '2026-05-06', '2026-06-03', '2026-07-05', '2026-08-04'];
 const RATES = [0.92, 0.92, 0.91, 0.93, 0.92, 0.92];
 
-// 每个账户 6 个月的值。人民币账户填一列数；港币账户填 [港币, 港币里的人民币子账户]
+// 人民币账户填一列数；港币账户填 [港币, 港币账户里的人民币子账户]
 const CNY = {
-  cn_sv_boc: [12000, 12400, 13100, 13100, 14200, 15600],
-  cn_sv_icbc: [8500, 8500, 9200, 9200, 9200, 10400],
-  cn_sv_cmb: [26000, 24800, 27600, 31200, 30100, 34800],
-  cn_sv_ccb: [4200, 4260, 4260, 4390, 4390, 4520],
-  cn_sv_wechat: [1800, 960, 2340, 1120, 3050, 1680],
-  cn_sv_alipay: [900, 1350, 620, 1880, 740, 1210],
+  cn_sv_boc: [2100, 2400, 2000, 2900, 3400, 4100],
+  cn_sv_icbc: [1200, 1200, 1600, 1600, 1600, 2100],
+  cn_sv_cmb: [4200, 3400, 4800, 5900, 6400, 7600],
+  cn_sv_ccb: [800, 830, 830, 880, 880, 920],
+  cn_sv_wechat: [320, 180, 480, 230, 610, 350],
+  cn_sv_alipay: [170, 260, 120, 360, 150, 240],
 
-  cn_cc_cmb: [-32000, -38600, -29400, -24800, -31200, -22600],
-  cn_cc_citic: [-8600, -5200, -9800, -7400, -4100, -6300],
+  // 一路把欠款还下去
+  cn_cc_cmb: [-26000, -28600, -24000, -19000, -15000, -7200],
+  cn_cc_citic: [-4200, -2800, -5100, -3400, -1900, -2600],
   cn_cc_huabei: [-6000, -6000, -4000, -4000, -2000, -2000],
 
-  cn_rc_pending: [0, 3200, 3200, 0, 5400, 0]
+  cn_rc_pending: [0, 1400, 1400, 0, 2200, 0]
 };
 
-// [港币, 香港人民币]
 const HK = {
-  hk_sv_hsbc: [[42000, 3000], [39500, 3000], [44800, 1500], [48200, 1500], [46100, 4200], [52400, 4200]],
-  hk_sv_bochk: [[15000, 0], [16200, 0], [14100, 0], [17800, 0], [19400, 0], [18900, 0]],
-  hk_sv_hangseng: [[6800, 0], [6800, 0], [7150, 0], [7150, 0], [7420, 0], [7420, 0]],
-  hk_sv_za: [[2400, 0], [3100, 0], [2850, 0], [4200, 0], [3900, 0], [5100, 0]],
-  hk_sv_octopus: [[380, 0], [220, 0], [460, 0], [310, 0], [540, 0], [290, 0]],
-  hk_sv_payme: [[120, 0], [340, 0], [90, 0], [260, 0], [180, 0], [420, 0]],
+  hk_sv_hsbc: [[3200, 400], [2900, 400], [3600, 200], [4100, 200], [3800, 600], [4700, 600]],
+  hk_sv_bochk: [[1200, 0], [1350, 0], [1150, 0], [1500, 0], [1680, 0], [1600, 0]],
+  hk_sv_hangseng: [[560, 0], [560, 0], [610, 0], [610, 0], [640, 0], [640, 0]],
+  hk_sv_za: [[210, 0], [270, 0], [240, 0], [360, 0], [330, 0], [440, 0]],
+  hk_sv_octopus: [[70, 0], [40, 0], [90, 0], [60, 0], [110, 0], [50, 0]],
+  hk_sv_payme: [[20, 0], [60, 0], [10, 0], [50, 0], [30, 0], [80, 0]],
 
-  hk_cc_hsbc: [[-9800, 0], [-12400, -1200], [-7600, 0], [-11200, -800], [-8400, 0], [-6900, 0]],
-  hk_cc_bochk: [[-2200, 0], [-1800, 0], [-3400, 0], [-2100, 0], [-2900, 0], [-1600, 0]],
+  hk_cc_hsbc: [[-950, 0], [-1240, -200], [-720, 0], [-1080, -150], [-800, 0], [-600, 0]],
+  hk_cc_bochk: [[-210, 0], [-170, 0], [-330, 0], [-200, 0], [-270, 0], [-150, 0]],
 
-  hk_iv_stock: [[96000, 0], [101500, 0], [98200, 0], [112400, 0], [118900, 0], [126300, 0]]
+  hk_iv_stock: [[6200, 0], [6800, 0], [6300, 0], [7900, 0], [8400, 0], [9600, 0]]
 };
 
 const accounts = JSON.parse(fs.readFileSync(path.join(__dirname, 'accounts.json'), 'utf8'));
@@ -62,19 +66,35 @@ const months = MONTHS.map((date, i) => {
 
 fs.writeFileSync(path.join(__dirname, 'demo-months.json'), JSON.stringify(months, null, 1));
 
-// 顺手打印一下总资产，好确认曲线是不是好看
+// 打印各口径，确认曲线好看且总资产落在预期区间内
+const pad = n => Math.round(n).toLocaleString('zh-CN').padStart(8);
+let min = Infinity, max = -Infinity, prev = null;
+console.log('   日期        内地现金  内地总额   香港现金  香港总额     港股    总资产      环比');
 for (const m of months) {
-  let cash = 0, debt = 0, inv = 0, recv = 0;
+  let cnCash = 0, cnDebt = 0, cnRecv = 0, hkCash = 0, hkDebt = 0, inv = 0;
   for (const a of accounts) {
     const v = m.values[a.id];
     const rmb = v.hkd * m.rate + v.cny;
-    if (a.kind === 'savings') cash += rmb;
-    else if (a.kind === 'credit') debt += rmb;
-    else if (a.kind === 'invest') inv += v.hkd * m.rate;
-    else recv += rmb;
+    if (a.kind === 'invest') inv += v.hkd * m.rate;
+    else if (a.region === 'cn') {
+      if (a.kind === 'savings') cnCash += rmb;
+      else if (a.kind === 'credit') cnDebt += rmb;
+      else cnRecv += rmb;
+    } else {
+      if (a.kind === 'savings') hkCash += rmb;
+      else if (a.kind === 'credit') hkDebt += rmb;
+    }
   }
-  console.log(m.date, ' 现金 ' + Math.round(cash).toString().padStart(7),
-    ' 负债 ' + Math.round(debt).toString().padStart(7),
-    ' 港股 ' + Math.round(inv).toString().padStart(7),
-    ' 总资产 ' + Math.round(cash + debt + inv + recv).toString().padStart(7));
+  const cnTotal = cnCash + cnDebt + cnRecv;
+  const hkTotal = hkCash + hkDebt + inv;
+  const total = cnTotal + hkTotal;
+  min = Math.min(min, total); max = Math.max(max, total);
+  console.log(' ' + m.date + pad(cnCash) + pad(cnTotal) + pad(hkCash) + pad(hkTotal) + pad(inv) + pad(total) +
+    (prev === null ? '         —' : pad(total - prev)));
+  prev = total;
+}
+console.log('\n总资产区间：' + Math.round(min).toLocaleString('zh-CN') + ' ~ ' + Math.round(max).toLocaleString('zh-CN'));
+if (min < -20000 || max > 20000) {
+  console.log('⚠  超出 -20000 ~ 20000 的目标区间');
+  process.exitCode = 1;
 }

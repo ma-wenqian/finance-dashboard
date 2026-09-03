@@ -1,0 +1,15 @@
+{
+  "name": "finance-dashboard",
+  "version": "1.0.0",
+  "description": "个人资金看板 —— 每月记一次内地/香港各账户余额与信用卡欠款，按汇率折算出总资产。零依赖，单文件页面 + 可选的自托管后端。",
+  "keywords": ["personal-finance", "net-worth", "dashboard", "cny", "hkd", "self-hosted", "zero-dependency"],
+  "homepage": "https://ma-wenqian.github.io/finance-dashboard/",
+  "repository": { "type": "git", "url": "https://github.com/ma-wenqian/finance-dashboard.git" },
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "node src/build.js",
+    "demo-data": "node src/data/make-demo.js",
+    "start": "node server/server.js"
+  }
+}

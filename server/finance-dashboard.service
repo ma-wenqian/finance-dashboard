@@ -1,0 +1,46 @@
+[Unit]
+Description=Finance Dashboard (personal net worth)
+Documentation=https://github.com/ma-wenqian/finance-dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# 和 stocks-record / Authelia 一样：二进制 + systemd，不上 docker。
+# 这台 961MB 内存，多一层 docker daemon 不划算。
+DynamicUser=yes
+StateDirectory=finance-dashboard
+Environment=DATA_DIR=/var/lib/finance-dashboard
+Environment=HOST=127.0.0.1
+Environment=PORT=9320
+Environment=AUTH_MODE=proxy
+Environment=NODE_ENV=production
+WorkingDirectory=/opt/finance-dashboard
+ExecStart=/usr/bin/node /opt/finance-dashboard/server/server.js
+Restart=on-failure
+RestartSec=3
+
+# ⚠️ 只绑 127.0.0.1：proxy 模式下本进程无条件信任 Remote-User 头，
+#    暴露到公网等于把任意用户的身份送人。ufw 也不要放行 9320。
+#    和 stocks-record / frps 面板是同一套信任模型。
+# 下面这些是常规收紧，和上面那条不是一回事。
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=no
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# 这台内存紧，给它一个上限，别让它把 Authelia 挤掉
+MemoryMax=150M
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,506 @@
+[
+ {
+  "id": "2026-03",
+  "date": "2026-03-05",
+  "rate": 0.92,
+  "values": {
+   "cn_sv_boc": {
+    "hkd": 0,
+    "cny": 12000
+   },
+   "cn_sv_icbc": {
+    "hkd": 0,
+    "cny": 8500
+   },
+   "cn_sv_cmb": {
+    "hkd": 0,
+    "cny": 26000
+   },
+   "cn_sv_ccb": {
+    "hkd": 0,
+    "cny": 4200
+   },
+   "cn_sv_wechat": {
+    "hkd": 0,
+    "cny": 1800
+   },
+   "cn_sv_alipay": {
+    "hkd": 0,
+    "cny": 900
+   },
+   "cn_cc_cmb": {
+    "hkd": 0,
+    "cny": -32000
+   },
+   "cn_cc_citic": {
+    "hkd": 0,
+    "cny": -8600
+   },
+   "cn_cc_huabei": {
+    "hkd": 0,
+    "cny": -6000
+   },
+   "cn_rc_pending": {
+    "hkd": 0,
+    "cny": 0
+   },
+   "hk_sv_hsbc": {
+    "hkd": 42000,
+    "cny": 3000
+   },
+   "hk_sv_bochk": {
+    "hkd": 15000,
+    "cny": 0
+   },
+   "hk_sv_hangseng": {
+    "hkd": 6800,
+    "cny": 0
+   },
+   "hk_sv_za": {
+    "hkd": 2400,
+    "cny": 0
+   },
+   "hk_sv_octopus": {
+    "hkd": 380,
+    "cny": 0
+   },
+   "hk_sv_payme": {
+    "hkd": 120,
+    "cny": 0
+   },
+   "hk_cc_hsbc": {
+    "hkd": -9800,
+    "cny": 0
+   },
+   "hk_cc_bochk": {
+    "hkd": -2200,
+    "cny": 0
+   },
+   "hk_iv_stock": {
+    "hkd": 96000,
+    "cny": 0
+   }
+  },
+  "carried": []
+ },
+ {
+  "id": "2026-04",
+  "date": "2026-04-04",
+  "rate": 0.92,
+  "values": {
+   "cn_sv_boc": {
+    "hkd": 0,
+    "cny": 12400
+   },
+   "cn_sv_icbc": {
+    "hkd": 0,
+    "cny": 8500
+   },
+   "cn_sv_cmb": {
+    "hkd": 0,
+    "cny": 24800
+   },
+   "cn_sv_ccb": {
+    "hkd": 0,
+    "cny": 4260
+   },
+   "cn_sv_wechat": {
+    "hkd": 0,
+    "cny": 960
+   },
+   "cn_sv_alipay": {
+    "hkd": 0,
+    "cny": 1350
+   },
+   "cn_cc_cmb": {
+    "hkd": 0,
+    "cny": -38600
+   },
+   "cn_cc_citic": {
+    "hkd": 0,
+    "cny": -5200
+   },
+   "cn_cc_huabei": {
+    "hkd": 0,
+    "cny": -6000
+   },
+   "cn_rc_pending": {
+    "hkd": 0,
+    "cny": 3200
+   },
+   "hk_sv_hsbc": {
+    "hkd": 39500,
+    "cny": 3000
+   },
+   "hk_sv_bochk": {
+    "hkd": 16200,
+    "cny": 0
+   },
+   "hk_sv_hangseng": {
+    "hkd": 6800,
+    "cny": 0
+   },
+   "hk_sv_za": {
+    "hkd": 3100,
+    "cny": 0
+   },
+   "hk_sv_octopus": {
+    "hkd": 220,
+    "cny": 0
+   },
+   "hk_sv_payme": {
+    "hkd": 340,
+    "cny": 0
+   },
+   "hk_cc_hsbc": {
+    "hkd": -12400,
+    "cny": -1200
+   },
+   "hk_cc_bochk": {
+    "hkd": -1800,
+    "cny": 0
+   },
+   "hk_iv_stock": {
+    "hkd": 101500,
+    "cny": 0
+   }
+  },
+  "carried": []
+ },
+ {
+  "id": "2026-05",
+  "date": "2026-05-06",
+  "rate": 0.91,
+  "values": {
+   "cn_sv_boc": {
+    "hkd": 0,
+    "cny": 13100
+   },
+   "cn_sv_icbc": {
+    "hkd": 0,
+    "cny": 9200
+   },
+   "cn_sv_cmb": {
+    "hkd": 0,
+    "cny": 27600
+   },
+   "cn_sv_ccb": {
+    "hkd": 0,
+    "cny": 4260
+   },
+   "cn_sv_wechat": {
+    "hkd": 0,
+    "cny": 2340
+   },
+   "cn_sv_alipay": {
+    "hkd": 0,
+    "cny": 620
+   },
+   "cn_cc_cmb": {
+    "hkd": 0,
+    "cny": -29400
+   },
+   "cn_cc_citic": {
+    "hkd": 0,
+    "cny": -9800
+   },
+   "cn_cc_huabei": {
+    "hkd": 0,
+    "cny": -4000
+   },
+   "cn_rc_pending": {
+    "hkd": 0,
+    "cny": 3200
+   },
+   "hk_sv_hsbc": {
+    "hkd": 44800,
+    "cny": 1500
+   },
+   "hk_sv_bochk": {
+    "hkd": 14100,
+    "cny": 0
+   },
+   "hk_sv_hangseng": {
+    "hkd": 7150,
+    "cny": 0
+   },
+   "hk_sv_za": {
+    "hkd": 2850,
+    "cny": 0
+   },
+   "hk_sv_octopus": {
+    "hkd": 460,
+    "cny": 0
+   },
+   "hk_sv_payme": {
+    "hkd": 90,
+    "cny": 0
+   },
+   "hk_cc_hsbc": {
+    "hkd": -7600,
+    "cny": 0
+   },
+   "hk_cc_bochk": {
+    "hkd": -3400,
+    "cny": 0
+   },
+   "hk_iv_stock": {
+    "hkd": 98200,
+    "cny": 0
+   }
+  },
+  "carried": []
+ },
+ {
+  "id": "2026-06",
+  "date": "2026-06-03",
+  "rate": 0.93,
+  "values": {
+   "cn_sv_boc": {
+    "hkd": 0,
+    "cny": 13100
+   },
+   "cn_sv_icbc": {
+    "hkd": 0,
+    "cny": 9200
+   },
+   "cn_sv_cmb": {
+    "hkd": 0,
+    "cny": 31200
+   },
+   "cn_sv_ccb": {
+    "hkd": 0,
+    "cny": 4390
+   },
+   "cn_sv_wechat": {
+    "hkd": 0,
+    "cny": 1120
+   },
+   "cn_sv_alipay": {
+    "hkd": 0,
+    "cny": 1880
+   },
+   "cn_cc_cmb": {
+    "hkd": 0,
+    "cny": -24800
+   },
+   "cn_cc_citic": {
+    "hkd": 0,
+    "cny": -7400
+   },
+   "cn_cc_huabei": {
+    "hkd": 0,
+    "cny": -4000
+   },
+   "cn_rc_pending": {
+    "hkd": 0,
+    "cny": 0
+   },
+   "hk_sv_hsbc": {
+    "hkd": 48200,
+    "cny": 1500
+   },
+   "hk_sv_bochk": {
+    "hkd": 17800,
+    "cny": 0
+   },
+   "hk_sv_hangseng": {
+    "hkd": 7150,
+    "cny": 0
+   },
+   "hk_sv_za": {
+    "hkd": 4200,
+    "cny": 0
+   },
+   "hk_sv_octopus": {
+    "hkd": 310,
+    "cny": 0
+   },
+   "hk_sv_payme": {
+    "hkd": 260,
+    "cny": 0
+   },
+   "hk_cc_hsbc": {
+    "hkd": -11200,
+    "cny": -800
+   },
+   "hk_cc_bochk": {
+    "hkd": -2100,
+    "cny": 0
+   },
+   "hk_iv_stock": {
+    "hkd": 112400,
+    "cny": 0
+   }
+  },
+  "carried": []
+ },
+ {
+  "id": "2026-07",
+  "date": "2026-07-05",
+  "rate": 0.92,
+  "values": {
+   "cn_sv_boc": {
+    "hkd": 0,
+    "cny": 14200
+   },
+   "cn_sv_icbc": {
+    "hkd": 0,
+    "cny": 9200
+   },
+   "cn_sv_cmb": {
+    "hkd": 0,
+    "cny": 30100
+   },
+   "cn_sv_ccb": {
+    "hkd": 0,
+    "cny": 4390
+   },
+   "cn_sv_wechat": {
+    "hkd": 0,
+    "cny": 3050
+   },
+   "cn_sv_alipay": {
+    "hkd": 0,
+    "cny": 740
+   },
+   "cn_cc_cmb": {
+    "hkd": 0,
+    "cny": -31200
+   },
+   "cn_cc_citic": {
+    "hkd": 0,
+    "cny": -4100
+   },
+   "cn_cc_huabei": {
+    "hkd": 0,
+    "cny": -2000
+   },
+   "cn_rc_pending": {
+    "hkd": 0,
+    "cny": 5400
+   },
+   "hk_sv_hsbc": {
+    "hkd": 46100,
+    "cny": 4200
+   },
+   "hk_sv_bochk": {
+    "hkd": 19400,
+    "cny": 0
+   },
+   "hk_sv_hangseng": {
+    "hkd": 7420,
+    "cny": 0
+   },
+   "hk_sv_za": {
+    "hkd": 3900,
+    "cny": 0
+   },
+   "hk_sv_octopus": {
+    "hkd": 540,
+    "cny": 0
+   },
+   "hk_sv_payme": {
+    "hkd": 180,
+    "cny": 0
+   },
+   "hk_cc_hsbc": {
+    "hkd": -8400,
+    "cny": 0
+   },
+   "hk_cc_bochk": {
+    "hkd": -2900,
+    "cny": 0
+   },
+   "hk_iv_stock": {
+    "hkd": 118900,
+    "cny": 0
+   }
+  },
+  "carried": []
+ },
+ {
+  "id": "2026-08",
+  "date": "2026-08-04",
+  "rate": 0.92,
+  "values": {
+   "cn_sv_boc": {
+    "hkd": 0,
+    "cny": 15600
+   },
+   "cn_sv_icbc": {
+    "hkd": 0,
+    "cny": 10400
+   },
+   "cn_sv_cmb": {
+    "hkd": 0,
+    "cny": 34800
+   },
+   "cn_sv_ccb": {
+    "hkd": 0,
+    "cny": 4520
+   },
+   "cn_sv_wechat": {
+    "hkd": 0,
+    "cny": 1680
+   },
+   "cn_sv_alipay": {
+    "hkd": 0,
+    "cny": 1210
+   },
+   "cn_cc_cmb": {
+    "hkd": 0,
+    "cny": -22600
+   },
+   "cn_cc_citic": {
+    "hkd": 0,
+    "cny": -6300
+   },
+   "cn_cc_huabei": {
+    "hkd": 0,
+    "cny": -2000
+   },
+   "cn_rc_pending": {
+    "hkd": 0,
+    "cny": 0
+   },
+   "hk_sv_hsbc": {
+    "hkd": 52400,
+    "cny": 4200
+   },
+   "hk_sv_bochk": {
+    "hkd": 18900,
+    "cny": 0
+   },
+   "hk_sv_hangseng": {
+    "hkd": 7420,
+    "cny": 0
+   },
+   "hk_sv_za": {
+    "hkd": 5100,
+    "cny": 0
+   },
+   "hk_sv_octopus": {
+    "hkd": 290,
+    "cny": 0
+   },
+   "hk_sv_payme": {
+    "hkd": 420,
+    "cny": 0
+   },
+   "hk_cc_hsbc": {
+    "hkd": -6900,
+    "cny": 0
+   },
+   "hk_cc_bochk": {
+    "hkd": -1600,
+    "cny": 0
+   },
+   "hk_iv_stock": {
+    "hkd": 126300,
+    "cny": 0
+   }
+  },
+  "carried": []
+ }
+]

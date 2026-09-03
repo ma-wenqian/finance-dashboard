@@ -1,0 +1,44 @@
+{
+  "_说明": "复制成 config.json 再改。只改你要用的那一块，其余保持默认即可。",
+
+  "port": 8788,
+  "host": "127.0.0.1",
+  "secureCookies": true,
+  "sessionTtlDays": 30,
+
+  "_allowedEmails": "留空数组 = 只要 IdP 放行就允许。填了就只有名单内的邮箱能用。",
+  "allowedEmails": [],
+
+  "_authMode": "proxy | oidc | none —— 三选一，下面按你选的那种填",
+  "authMode": "proxy",
+
+  "_proxy说明": [
+    "适用于：Authentik outpost 或 Authelia 已经作为 forward-auth 挡在反代前面。",
+    "这种模式下服务端完全信任下面这些请求头，所以 trustedIps 必须只写反代的地址，",
+    "并且这个端口绝不能直接暴露到公网。",
+    "Authentik 默认发 X-authentik-uid / X-authentik-email / X-authentik-name；",
+    "Authelia 默认发 Remote-User / Remote-Email / Remote-Name（已配在 fallback 里）。"
+  ],
+  "proxy": {
+    "trustedIps": ["127.0.0.1", "::1", "::ffff:127.0.0.1"],
+    "idHeader": "x-authentik-uid",
+    "emailHeader": "x-authentik-email",
+    "nameHeader": "x-authentik-name",
+    "fallbackIdHeader": "remote-user",
+    "fallbackEmailHeader": "remote-email",
+    "fallbackNameHeader": "remote-name"
+  },
+
+  "_oidc说明": [
+    "适用于：想让这个应用自己跑标准 OIDC 授权码 + PKCE 流程。",
+    "在 Authentik/Authelia 里新建一个 OAuth2/OIDC Provider，回调地址填 redirectUri。",
+    "clientSecret 建议不要写在这里，改用环境变量 OIDC_CLIENT_SECRET。"
+  ],
+  "oidc": {
+    "issuer": "https://auth.example.com/application/o/finance/",
+    "clientId": "填你的 client id",
+    "clientSecret": "",
+    "redirectUri": "https://money.example.com/auth/callback",
+    "scope": "openid profile email"
+  }
+}

@@ -1,0 +1,26 @@
+[
+  { "id": "cn_sv_boc",     "name": "中国银行",      "region": "cn", "kind": "savings",    "ccy": "CNY",  "limit": null, "note": "", "active": true },
+  { "id": "cn_sv_icbc",    "name": "工商银行",      "region": "cn", "kind": "savings",    "ccy": "CNY",  "limit": null, "note": "", "active": true },
+  { "id": "cn_sv_cmb",     "name": "招商银行",      "region": "cn", "kind": "savings",    "ccy": "CNY",  "limit": null, "note": "", "active": true },
+  { "id": "cn_sv_ccb",     "name": "建设银行",      "region": "cn", "kind": "savings",    "ccy": "CNY",  "limit": null, "note": "", "active": true },
+  { "id": "cn_sv_wechat",  "name": "微信零钱",      "region": "cn", "kind": "savings",    "ccy": "CNY",  "limit": null, "note": "", "active": true },
+  { "id": "cn_sv_alipay",  "name": "支付宝",        "region": "cn", "kind": "savings",    "ccy": "CNY",  "limit": null, "note": "", "active": true },
+
+  { "id": "cn_cc_cmb",     "name": "招行 信用卡",   "region": "cn", "kind": "credit",     "ccy": "CNY",  "limit": 80000, "note": "填了额度就能用「可用额度」反推欠款", "active": true },
+  { "id": "cn_cc_citic",   "name": "中信 信用卡",   "region": "cn", "kind": "credit",     "ccy": "CNY",  "limit": 50000, "note": "", "active": true },
+  { "id": "cn_cc_huabei",  "name": "花呗",          "region": "cn", "kind": "credit",     "ccy": "CNY",  "limit": 28000, "note": "", "active": true },
+
+  { "id": "cn_rc_pending", "name": "待入账 / 报销", "region": "cn", "kind": "receivable", "ccy": "CNY",  "limit": null, "note": "已花出去、等着报销回来的钱", "active": true },
+
+  { "id": "hk_sv_hsbc",    "name": "汇丰",          "region": "hk", "kind": "savings",    "ccy": "BOTH", "limit": null, "note": "", "active": true },
+  { "id": "hk_sv_bochk",   "name": "中银香港",      "region": "hk", "kind": "savings",    "ccy": "BOTH", "limit": null, "note": "", "active": true },
+  { "id": "hk_sv_hangseng","name": "恒生",          "region": "hk", "kind": "savings",    "ccy": "BOTH", "limit": null, "note": "", "active": true },
+  { "id": "hk_sv_za",      "name": "ZA Bank",       "region": "hk", "kind": "savings",    "ccy": "BOTH", "limit": null, "note": "", "active": true },
+  { "id": "hk_sv_octopus", "name": "八达通",        "region": "hk", "kind": "savings",    "ccy": "BOTH", "limit": null, "note": "", "active": true },
+  { "id": "hk_sv_payme",   "name": "PayMe",         "region": "hk", "kind": "savings",    "ccy": "BOTH", "limit": null, "note": "", "active": true },
+
+  { "id": "hk_cc_hsbc",    "name": "汇丰 信用卡",   "region": "hk", "kind": "credit",     "ccy": "BOTH", "limit": null, "note": "", "active": true },
+  { "id": "hk_cc_bochk",   "name": "中银 信用卡",   "region": "hk", "kind": "credit",     "ccy": "BOTH", "limit": null, "note": "", "active": true },
+
+  { "id": "hk_iv_stock",   "name": "港股账户",      "region": "hk", "kind": "invest",     "ccy": "HKD",  "limit": null, "note": "每月手动填入市值", "active": true }
+]

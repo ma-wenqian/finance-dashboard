@@ -38,8 +38,17 @@ function build(outFile, seed, label) {
 
 const base = { version: 1, baseCcy: 'CNY' };
 
+/* 演示用的分期：首期月份按构建当天往前推，否则过几个月演示页上就全是「已还完」 */
+const ymShift = k => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + k); return d.toISOString().slice(0, 7); };
+const demoInstallments = [
+  { id: 'inst_demo1', accountId: 'cn_cc_cmb', bank: '', name: '账单分期', total: 12000, periods: 12, start: ymShift(-4), feeType: 'rate', fee: 0.6, ccy: 'CNY', note: '' },
+  { id: 'inst_demo2', accountId: 'cn_cc_citic', bank: '', name: '手机', total: 6999, periods: 24, start: ymShift(-9), feeType: 'none', fee: 0, ccy: 'CNY', note: '免息' },
+  { id: 'inst_demo3', accountId: 'cn_cc_huabei', bank: '', name: '笔记本', total: 4800, periods: 6, start: ymShift(-2), feeType: 'none', fee: 0, ccy: 'CNY', note: '' },
+  { id: 'inst_demo4', accountId: 'hk_cc_hsbc', bank: '', name: '机票', total: 5400, periods: 3, start: ymShift(1), feeType: 'once', fee: 120, ccy: 'HKD', note: '' }
+];
+
 const demoOut = build(path.join(root, 'docs', 'index.html'),
-  Object.assign({}, base, { demo: true, accounts, months: demoMonths }), '演示版');
+  Object.assign({}, base, { demo: true, accounts, months: demoMonths, installments: demoInstallments }), '演示版');
 
 const serverOut = build(path.join(root, 'server', 'public', 'index.html'),
   Object.assign({}, base, { accounts: accounts.map(a => Object.assign({}, a, { limit: null })), months: [] }), '服务器版');

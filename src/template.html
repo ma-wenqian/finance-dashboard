@@ -90,7 +90,7 @@ tr.sum td{font-weight:650;background:var(--panel2)}
 .tag.warn{background:color-mix(in srgb,var(--hk) 20%,transparent);color:var(--hk)}
 .muted{color:var(--muted)} .faint{color:var(--faint)}
 
-input[type=text],input[type=number],input[type=date],select.inp{
+input[type=text],input[type=number],input[type=date],input[type=month],select.inp{
   background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 9px;width:100%;
   text-align:right;font-variant-numeric:tabular-nums;outline:none;transition:border-color .12s,box-shadow .12s;
 }
@@ -133,6 +133,8 @@ dialog::backdrop{background:rgba(8,10,14,.5)}
 .ubox{font-size:12px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:5px 10px;white-space:nowrap;max-width:210px;overflow:hidden;text-overflow:ellipsis}
 .ubox.local{color:var(--faint)}
 .ubox.warn{color:var(--hk);border-color:color-mix(in srgb,var(--hk) 40%,transparent)}
+.pbar{width:60px;height:5px;border-radius:3px;background:var(--line);overflow:hidden;display:inline-block}
+.pbar i{display:block;height:100%;background:var(--accent)}
 .onboard{max-width:620px;margin:60px auto;text-align:center;padding:34px 30px}
 .onboard h2{margin:0 0 8px;font-size:20px}
 .onboard p{color:var(--muted);margin:0 0 22px;line-height:1.7}
@@ -147,6 +149,7 @@ dialog::backdrop{background:rgba(8,10,14,.5)}
     <div class="tabs" id="tabs">
       <button data-tab="overview" class="on">概览</button>
       <button data-tab="entry">录入</button>
+      <button data-tab="installments">分期</button>
       <button data-tab="accounts">账户</button>
     </div>
     <select id="monthSel" class="ctl"></select>

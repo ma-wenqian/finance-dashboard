@@ -105,7 +105,15 @@ function normalize(d) {
       note: a.note || '', active: a.active !== false
     };
   });
-  d.months.sort(function (a, b) { return a.id < b.id ? -1 : 1; });
+  /* 补齐 / 去重主键：旧数据的 id 是 "YYYY-MM"，导入的文件也可能缺 date 或撞 id。
+     先修好再排序，否则 month(id) 查找会静默拿到错的那条。 */
+  var seenId = {};
+  d.months.forEach(function (m) {
+    if (!m.date) m.date = /^\d{4}-\d{2}$/.test(m.id || '') ? m.id + '-01' : '';
+    if (!m.id || seenId[m.id]) m.id = (m.date || 'rec') + '#' + Math.random().toString(36).slice(2, 7);
+    seenId[m.id] = 1;
+  });
+  d.months.sort(cmpMonth);
   d.months.forEach(function (m) {
     m.values = m.values || {};
     m.carried = m.carried || [];
@@ -114,6 +122,17 @@ function normalize(d) {
       if (!v) m.values[a.id] = { hkd: 0, cny: 0 };
       else m.values[a.id] = { hkd: +v.hkd || 0, cny: +v.cny || 0 };
     });
+  });
+  d.installments = (d.installments || []).map(function (it) {
+    return {
+      id: it.id || 'inst_' + Math.random().toString(36).slice(2, 8),
+      bank: it.bank || '', name: it.name || '',
+      total: +it.total || 0, periods: Math.max(1, Math.round(+it.periods) || 1),
+      start: /^\d{4}-\d{2}$/.test(it.start || '') ? it.start : ymNow(),
+      feeType: it.feeType === 'rate' || it.feeType === 'once' ? it.feeType : 'none',
+      fee: +it.fee || 0, ccy: it.ccy === 'HKD' ? 'HKD' : 'CNY', note: it.note || '',
+      accountId: it.accountId || ''
+    };
   });
   return d;
 }
@@ -126,9 +145,22 @@ function save() {
 function accounts(all) { return S.accounts.filter(function (a) { return all ? true : a.active; }); }
 function month(id) { for (var i = 0; i < S.months.length; i++) if (S.months[i].id === id) return S.months[i]; return null; }
 function curMonth() { return month(ui.monthId) || S.months[S.months.length - 1] || null; }
+/* 「上一条」＝ 按时间排在前面的那一条，不一定是上个月 */
 function prevMonth(id) {
   var i = S.months.findIndex(function (m) { return m.id === id; });
   return i > 0 ? S.months[i - 1] : null;
+}
+/* ⚠️ id 只是一个不重复的键，不再是 "YYYY-MM" —— 正因为解开了这层绑定，
+   同一个月才能有多条记录。任何地方都不要再从 id 里推月份，排序也一律按 date。
+   （旧数据里 id 就是 "2026-03"，那些值本身仍然唯一，照常能用。） */
+function cmpMonth(a, b) {
+  if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+  return a.id < b.id ? -1 : 1;   // 同一天的多条，按 id 稳定排序
+}
+function newMonthId(date) {
+  var id;
+  do { id = date + '#' + Math.random().toString(36).slice(2, 7); } while (month(id));
+  return id;
 }
 /* 折算成人民币 */
 function rmb(v, rate) { if (!v) return 0; return (v.hkd || 0) * rate + (v.cny || 0); }
@@ -243,10 +275,18 @@ function tickFmt(span, mn, mx) {
   };
 }
 
+/* 一个月只有一条记录时标到月（26/03，和以前一样）；同月有多条才标到日（26/03/05）——
+   否则 x 轴上会出现两个一模一样的标签，看不出是哪条。 */
+function chartLabel(m, all) {
+  var mon = (m.date || '').slice(0, 7);
+  var multi = all.filter(function (x) { return (x.date || '').slice(0, 7) === mon; }).length > 1;
+  return (multi ? m.date : mon).slice(2).replace(/-/g, '/');
+}
+
 /* ---------------- 概览 ---------------- */
 function renderOverview() {
   var m = curMonth();
-  if (!m) return '<div class="card empty">还没有任何月份数据。<br><br><button class="btn" data-act="newmonth">新建一个月份</button></div>';
+  if (!m) return '<div class="card empty">还没有任何记录。<br><br><button class="btn" data-act="newmonth">新建一条记录</button></div>';
   var M = metrics(m), pm = prevMonth(m.id), PM = pm ? metrics(pm) : null;
   var r = M.rate;
   var d = function (v) { return disp(v, r); };
@@ -276,6 +316,14 @@ function renderOverview() {
   h += tile('信用卡欠款', d(-M.debt), PM ? d(-(M.debt - PM.debt)) : null, '负债总额（正数表示欠款）', true);
   h += tile('待入账 / 报销', d(M.recv), delta(M.recv, PM && PM.recv), '尚未到账、但已计入总资产');
   h += '</div>';
+  if (S.installments.length) {
+    var ym = ymNow(), lr = latestRate();
+    var due = function (y) { return S.installments.reduce(function (s, it) { return s + instRmb(it, instPay(it, ymDiff(it.start, y) + 1), lr); }, 0); };
+    var nLive = S.installments.filter(function (it) { return !instState(it, ym).done; }).length;
+    h += '<div class="card tile" data-tab="installments" style="margin-top:12px;cursor:pointer;display:flex;gap:24px;align-items:baseline;flex-wrap:wrap">' +
+      '<div class="k">分期 · 本月应还（不计入总资产）</div><div class="v">' + money(disp(due(ym), lr), 0) + '</div>' +
+      '<div class="d">下月 ' + money(disp(due(ymAdd(ym, 1)), lr), 0) + ' · ' + nLive + ' 笔进行中</div><div class="spacer" style="flex:1"></div><div class="d">查看 →</div></div>';
+  }
 
   if (window.SEED && window.SEED.demo) {
     h += '<div class="notice">这是<b>演示数据，全是编的</b>。随便改 —— 改动只存进你自己浏览器的 localStorage，' +
@@ -283,11 +331,11 @@ function renderOverview() {
   }
   if (m.carried && m.carried.length) {
     var names = m.carried.map(function (id) { var a = S.accounts.find(function (x) { return x.id === id; }); return a ? a.name : id; });
-    h += '<div class="notice"><b>本月有 ' + m.carried.length + ' 个账户沿用了上月数值</b>（Excel 里当月未填写）：' + esc(names.join('、')) + '。到「录入」页改一下即可，改过的会自动去掉标记。</div>';
+    h += '<div class="notice"><b>这条记录里有 ' + m.carried.length + ' 个账户沿用了上一条的数值</b>（新建时未改动）：' + esc(names.join('、')) + '。到「录入」页改一下即可，改过的会自动去掉标记。</div>';
   }
 
   /* 趋势 */
-  var ms = S.months, labels = ms.map(function (x) { return x.id.replace('20', '').replace('-', '/'); });
+  var ms = S.months, labels = ms.map(function (x) { return chartLabel(x, ms); });
   var mets = ms.map(metrics);
   /* 四条线分开画：它们量级差太远（港股 3 万、香港 5 万、内地 -3 万），
      共用一个 y 轴的话各自的起伏全被压平。每张图自己缩放。 */
@@ -310,9 +358,9 @@ function renderOverview() {
   });
   h += '</div>';
 
-  /* 月度汇总表 */
-  h += '<div class="sec-title">月度汇总</div><div class="card tblwrap"><table><thead><tr>' +
-    '<th>月份</th><th>汇率</th><th>内地现金流</th><th>内地总余额</th><th>香港现金流</th><th>香港总余额</th><th>港股</th><th>总资产</th><th>环比</th>' +
+  /* 历史汇总表 */
+  h += '<div class="sec-title">历史汇总</div><div class="card tblwrap"><table><thead><tr>' +
+    '<th>日期</th><th>汇率</th><th>内地现金流</th><th>内地总余额</th><th>香港现金流</th><th>香港总余额</th><th>港股</th><th>总资产</th><th>环比</th>' +
     '</tr></thead><tbody>';
   for (var i = ms.length - 1; i >= 0; i--) {
     var x = mets[i], mm = ms[i], pv = i > 0 ? mets[i - 1] : null;
@@ -343,7 +391,7 @@ function renderOverview() {
       var dl = pv === null ? null : disp(val - pv, r);
       var zero = !v.hkd && !v.cny;
       body += '<tr' + (zero ? ' class="faint"' : '') + '><td>' + esc(a.name) +
-        (m.carried.indexOf(a.id) >= 0 ? '<span class="tag warn">沿用</span>' : '') + '</td>' +
+        (m.carried.indexOf(a.id) >= 0 ? '<span class="tag warn">沿用</span>' : '') + (a.kind === 'credit' ? instNote(a.id) : '') + '</td>' +
         '<td>' + (a.ccy === 'CNY' ? '<span class="faint">—</span>' : fmt(v.hkd, 0)) + '</td>' +
         '<td>' + (a.ccy === 'HKD' ? '<span class="faint">—</span>' : fmt(v.cny, 0)) + '</td>' +
         '<td class="' + cls(val) + '">' + money(disp(val, r), 0) + '</td>' +
@@ -381,16 +429,16 @@ var GROUPS = [
 /* ---------------- 录入 ---------------- */
 function renderEntry() {
   var m = curMonth();
-  if (!m) return '<div class="card empty">还没有月份。<br><br><button class="btn" data-act="newmonth">新建一个月份</button></div>';
+  if (!m) return '<div class="card empty">还没有记录。<br><br><button class="btn" data-act="newmonth">新建一条记录</button></div>';
   var r = m.rate;
   var h = '<div class="card" style="margin-top:20px;padding:14px 16px" class="row">' +
     '<div class="row">' +
     '<div><div class="mini-lbl">统计日期</div><input type="date" id="mDate" value="' + esc(m.date) + '" style="width:160px"></div>' +
     '<div><div class="mini-lbl">汇率 1 HKD = ? CNY</div><input type="text" id="mRate" value="' + r + '" style="width:110px"></div>' +
     '<div class="spacer" style="flex:1"></div>' +
-    '<button class="btn" data-act="newmonth">＋ 新建月份</button>' +
-    '<button class="btn ghost" data-act="copyprev">沿用上月全部数值</button>' +
-    '<button class="btn danger" data-act="delmonth">删除本月</button>' +
+    '<button class="btn" data-act="newmonth">＋ 新建记录</button>' +
+    '<button class="btn ghost" data-act="copyprev">沿用上一条的数值</button>' +
+    '<button class="btn danger" data-act="delmonth">删除本条</button>' +
     '</div></div>';
 
   h += '<div class="notice" style="background:var(--panel2);border-color:var(--line);color:var(--muted)">' +
@@ -422,7 +470,7 @@ function renderEntry() {
       var carried = m.carried.indexOf(a.id) >= 0;
       h += '<tr data-acc="' + a.id + '"><td>' + esc(a.name) +
         (carried ? '<span class="tag warn">沿用</span>' : '') +
-        (a.note ? '<div class="faint" style="font-size:11px">' + esc(a.note) + '</div>' : '') + '</td>';
+        (a.note ? '<div class="faint" style="font-size:11px">' + esc(a.note) + '</div>' : '') + (sec.credit ? instNote(a.id) : '') + '</td>';
       if (sec.mode === 'cn') {
         if (sec.credit) {
           h += '<td><input type="text" data-f="limit" data-acc="' + a.id + '" value="' + (a.limit == null ? '' : a.limit) + '" placeholder="—"></td>';
@@ -492,6 +540,210 @@ function sel(field, id, val, opts) {
   }).join('') + '</select>';
 }
 
+/* ---------------- 分期 ---------------- */
+/* 分期只是「每个月要还多少」的计划表，不进任何资产汇总 ——
+   信用卡欠款里已经含了分期的全部未还本金，再算一遍就重复扣了。
+   「本月」按今天的日历月算，和顶上选的是哪条记录无关。 */
+function ymNow() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2); }
+function ymAdd(ym, k) {
+  var y = +ym.slice(0, 4), m = +ym.slice(5, 7) - 1 + k;
+  y += Math.floor(m / 12); m = ((m % 12) + 12) % 12;
+  return y + '-' + ('0' + (m + 1)).slice(-2);
+}
+function ymDiff(a, b) { return (+b.slice(0, 4) - +a.slice(0, 4)) * 12 + (+b.slice(5, 7) - +a.slice(5, 7)); }
+function latestRate() { var l = S.months[S.months.length - 1]; return l ? l.rate : 0.89; }
+
+/* 第 k 期（从 1 数）应还多少，原币。每期本金按分截断，除不尽的零头计入第 1 期（多数银行的做法）。
+   手续费：rate = 每期收 总额 × 费率%；once = 第 1 期一次收清。 */
+function instPay(it, k) {
+  if (k < 1 || k > it.periods) return 0;
+  var base = Math.floor(it.total * 100 / it.periods) / 100;
+  var p = k === 1 ? Math.round((it.total - base * (it.periods - 1)) * 100) / 100 : base;
+  if (it.feeType === 'rate') p += Math.round(it.total * it.fee) / 100;
+  else if (it.feeType === 'once' && k === 1) p += it.fee;
+  return Math.round(p * 100) / 100;
+}
+function instState(it, ym) {
+  var idx = ymDiff(it.start, ym);   // 这个月是第 idx+1 期
+  var rem = 0;
+  for (var k = Math.max(1, idx + 1); k <= it.periods; k++) rem += instPay(it, k);
+  return {
+    now: instPay(it, idx + 1), rem: rem,
+    paid: Math.min(Math.max(idx, 0), it.periods),
+    notYet: idx < 0, done: idx >= it.periods,
+    end: ymAdd(it.start, it.periods - 1)
+  };
+}
+function instRmb(it, v, rate) { return it.ccy === 'HKD' ? v * rate : v; }
+function amt(v, ccy) { return (ccy === 'HKD' ? 'HK$' : '¥') + fmt(v, 2); }
+function bankOf(it) {
+  if (it.bank.trim()) return it.bank.trim();
+  var a = it.accountId && S.accounts.find(function (x) { return x.id === it.accountId; });
+  return a ? a.name : '未填银行';
+}
+/* 关联到某张卡的分期，截至今天还剩多少（按币种分开，不折算 —— 只是旁注，不进任何合计） */
+function instNote(accId) {
+  var now = ymNow(), by = {};
+  S.installments.forEach(function (it) {
+    if (it.accountId !== accId) return;
+    var st = instState(it, now);
+    if (!st.done) by[it.ccy] = (by[it.ccy] || 0) + st.rem;
+  });
+  var parts = Object.keys(by).map(function (c) { return amt(by[c], c); });
+  return parts.length ? '<div class="faint" style="font-size:11px">其中分期剩余 ' + parts.join(' + ') + '</div>' : '';
+}
+var BANK_COLORS = ['var(--accent)', 'var(--cn)', 'var(--hk)', 'var(--stock)', '#d9488f', '#8a9a2b', '#5f86a8', '#b07a3b'];
+
+function renderInstallments() {
+  var now = ymNow(), r = latestRate(), list = S.installments;
+  var live = [], done = [];
+  list.forEach(function (it) { (instState(it, now).done ? done : live).push(it); });
+  var dueIn = function (ym) {
+    return list.reduce(function (s, it) { return s + instRmb(it, instPay(it, ymDiff(it.start, ym) + 1), r); }, 0);
+  };
+  var thisM = dueIn(now), nextM = dueIn(ymAdd(now, 1));
+  var rem = live.reduce(function (s, it) { return s + instRmb(it, instState(it, now).rem, r); }, 0);
+
+  var h = '<div class="sec-title">分期 · ' + now + '</div>' +
+    '<div class="notice" style="background:var(--panel2);border-color:var(--line);color:var(--muted);margin-top:0">' +
+    '这里只用来看<b>每个月要还多少分期</b>，<b>不计入</b>总资产 —— 信用卡欠款里已经包含分期的未还部分。' +
+    '「本月」按今天的日期算；港币分期按最近一条记录的汇率 ' + r + ' 折算。</div>';
+
+  h += '<div class="grid4" style="margin-top:14px">';
+  h += tile('本月应还', disp(thisM, r), null, now);
+  h += tile('下月应还', disp(nextM, r), disp(nextM - thisM, r), ymAdd(now, 1) + ' · 比本月', true);
+  h += tile('剩余未还', disp(rem, r), null, '含本月这一期');
+  h += '<div class="card tile"><div class="k">进行中</div><div class="v">' + live.length + ' 笔</div>' +
+    '<div class="d">' + (done.length ? '另有 ' + done.length + ' 笔已还完' : '&nbsp;') + '</div></div>';
+  h += '</div>';
+
+  /* 未来 12 个月，按银行堆叠 */
+  var banks = [];
+  live.forEach(function (it) { if (banks.indexOf(bankOf(it)) < 0) banks.push(bankOf(it)); });
+  var labels = [], stacks = [];
+  for (var i = 0; i < 12; i++) {
+    var ym = ymAdd(now, i);
+    labels.push(ym.slice(2).replace('-', '/'));
+    stacks.push(banks.map(function (b) {
+      return disp(live.reduce(function (s, it) {
+        return bankOf(it) === b ? s + instRmb(it, instPay(it, ymDiff(it.start, ym) + 1), r) : s;
+      }, 0), r);
+    }));
+  }
+  h += '<div class="sec-title">未来 12 个月</div><div class="card panel">' +
+    (live.length ? stackChart(labels, stacks, banks.map(function (b, k) { return BANK_COLORS[k % BANK_COLORS.length]; })) +
+      '<div class="legend" style="padding-top:6px">' + banks.map(function (b, k) {
+        return '<span><i style="background:' + BANK_COLORS[k % BANK_COLORS.length] + '"></i>' + esc(b) + '</span>';
+      }).join('') + '</div>'
+      : '<div class="empty" style="padding:24px">没有进行中的分期</div>') + '</div>';
+
+  h += '<div class="row" style="margin:18px 0 10px"><div class="sec-title" style="margin:0">明细</div><div class="spacer" style="flex:1"></div>' +
+    '<button class="btn" data-act="addinst">＋ 新增分期</button></div>';
+  h += instTable(live.slice().sort(function (a, b) { return instState(a, now).end < instState(b, now).end ? -1 : 1; }), now, '还没有分期。');
+  if (done.length) {
+    h += '<details style="margin-top:14px"><summary class="muted" style="cursor:pointer;font-size:12.5px">已还完 ' + done.length + ' 笔</summary>' +
+      '<div style="margin-top:10px">' + instTable(done, now) + '</div></details>';
+  }
+  return h;
+}
+function instTable(list, now, emptyMsg) {
+  if (!list.length) return '<div class="card empty">' + esc(emptyMsg || '') + '</div>';
+  var h = '<div class="card tblwrap"><table><thead><tr>' +
+    '<th>银行 · 用途</th><th>总额</th><th>每期</th><th>本月应还</th><th style="min-width:130px">进度</th><th>剩余</th><th>起止</th><th></th>' +
+    '</tr></thead><tbody>';
+  list.forEach(function (it) {
+    var st = instState(it, now);
+    var reg = instPay(it, it.periods), first = instPay(it, 1);
+    var fee = it.feeType === 'rate' ? '费率 ' + it.fee + '%/期' : it.feeType === 'once' ? '手续费 ' + amt(it.fee, it.ccy) : '免息';
+    var pct = Math.round(st.paid / it.periods * 100);
+    h += '<tr' + (st.done ? ' class="faint"' : '') + '><td><b>' + esc(bankOf(it)) + '</b>' + (it.name ? ' · ' + esc(it.name) : '') +
+      '<div class="faint" style="font-size:11px">' + fee + (it.note ? ' · ' + esc(it.note) : '') + '</div></td>' +
+      '<td>' + amt(it.total, it.ccy) + '</td>' +
+      '<td>' + amt(reg, it.ccy) + (first !== reg ? '<div class="faint" style="font-size:11px">首期 ' + amt(first, it.ccy) + '</div>' : '') + '</td>' +
+      '<td style="font-weight:620">' + (st.now ? amt(st.now, it.ccy) : '<span class="faint">' + (st.notYet ? it.start + ' 起' : '—') + '</span>') + '</td>' +
+      '<td><div style="display:flex;align-items:center;gap:8px;justify-content:flex-end"><span>' + st.paid + ' / ' + it.periods + '</span>' +
+      '<span class="pbar"><i style="width:' + pct + '%"></i></span></div></td>' +
+      '<td>' + amt(st.rem, it.ccy) + '</td>' +
+      '<td class="faint">' + it.start + ' → ' + st.end + '</td>' +
+      '<td><button class="btn ghost sm" data-act="editinst" data-acc="' + it.id + '">改</button></td></tr>';
+  });
+  return h + '</tbody></table></div>';
+}
+/* 堆叠柱状图：stacks[i] 是第 i 根柱子里每个系列的值（已换算成显示币种） */
+function stackChart(labels, stacks, colors) {
+  var W = 760, H = 210, PL = 46, PR = 10, PT = 20, PB = 24;
+  var tot = stacks.map(function (s) { return s.reduce(function (a, b) { return a + b; }, 0); });
+  var mx = Math.max.apply(null, tot.concat([1])) * 1.15;
+  var tick = tickFmt(mx, 0, mx);
+  var n = labels.length, slot = (W - PL - PR) / n, bw = Math.min(34, slot * 0.6);
+  var Y = function (v) { return PT + (mx - v) / mx * (H - PT - PB); };
+  var g = '';
+  for (var i = 0; i <= 2; i++) {
+    var val = mx * i / 2, y = Y(val);
+    g += '<line x1="' + PL + '" y1="' + y.toFixed(1) + '" x2="' + (W - PR) + '" y2="' + y.toFixed(1) + '" stroke="var(--line2)" stroke-width="1"/>' +
+      '<text x="' + (PL - 7) + '" y="' + (y + 3.4).toFixed(1) + '" text-anchor="end" font-size="10" fill="var(--faint)">' + (i ? tick(val) : '0') + '</text>';
+  }
+  stacks.forEach(function (s, k) {
+    var x = PL + slot * k + (slot - bw) / 2, acc = 0;
+    s.forEach(function (v, j) {
+      if (!v) return;
+      var y0 = Y(acc), y1 = Y(acc + v); acc += v;
+      g += '<rect x="' + x.toFixed(1) + '" y="' + y1.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + Math.max(0.5, y0 - y1).toFixed(1) +
+        '" fill="' + colors[j] + '" opacity=".85"><title>' + esc(labels[k]) + ' ' + money(v, 0) + '</title></rect>';
+    });
+    if (tot[k]) g += '<text x="' + (x + bw / 2).toFixed(1) + '" y="' + (Y(tot[k]) - 5).toFixed(1) + '" text-anchor="middle" font-size="10" fill="var(--muted)">' + tick(tot[k]) + '</text>';
+    g += '<text x="' + (x + bw / 2).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="10" fill="' + (k === 0 ? 'var(--text)' : 'var(--faint)') + '">' + esc(labels[k]) + '</text>';
+  });
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;height:auto">' + g + '</svg>';
+}
+function editInst(id) {
+  var it = id ? S.installments.find(function (x) { return x.id === id; }) : null;
+  var v = it || { bank: '', name: '', total: '', periods: 12, start: ymNow(), feeType: 'none', fee: '', ccy: 'CNY', note: '', accountId: '' };
+  var opt = function (val, cur, label) { return '<option value="' + val + '"' + (val === cur ? ' selected' : '') + '>' + label + '</option>'; };
+  var body = '<h3>' + (it ? '修改分期' : '新增分期') + '</h3>' +
+    '<div class="fld"><label>银行</label><input type="text" class="lft" id="iBank" value="' + esc(v.bank) + '" placeholder="如 招商银行（关联了卡可不填）"></div>' +
+    '<div class="fld"><label>关联信用卡（可选，那张卡旁会显示分期剩余）</label><select class="inp" id="iAcc">' + opt('', v.accountId || '', '不关联') +
+    S.accounts.filter(function (a) { return a.kind === 'credit'; }).map(function (a) { return opt(a.id, v.accountId || '', esc(a.name)); }).join('') + '</select></div>' +
+    '<div class="fld"><label>用途（可选）</label><input type="text" class="lft" id="iName" value="' + esc(v.name) + '" placeholder="如 账单分期 / 手机"></div>' +
+    '<div class="row" style="flex-wrap:nowrap"><div class="fld" style="flex:2"><label>分期总额（本金）</label><input type="text" id="iTotal" value="' + v.total + '"></div>' +
+    '<div class="fld" style="flex:1"><label>币种</label><select class="inp" id="iCcy">' + opt('CNY', v.ccy, '人民币') + opt('HKD', v.ccy, '港币') + '</select></div></div>' +
+    '<div class="row" style="flex-wrap:nowrap"><div class="fld" style="flex:1"><label>期数</label><input type="text" id="iPeriods" value="' + v.periods + '"></div>' +
+    '<div class="fld" style="flex:1.4"><label>第 1 期在哪个月还</label><input type="month" id="iStart" value="' + v.start + '"></div></div>' +
+    '<div class="row" style="flex-wrap:nowrap"><div class="fld" style="flex:1.2"><label>手续费</label><select class="inp" id="iFeeType">' +
+    opt('none', v.feeType, '免息') + opt('rate', v.feeType, '每期按费率') + opt('once', v.feeType, '首期一次收') + '</select></div>' +
+    '<div class="fld" style="flex:1"><label id="iFeeLbl"></label><input type="text" id="iFee" value="' + (v.fee || '') + '"></div></div>' +
+    '<div class="fld"><label>备注（可选）</label><input type="text" class="lft" id="iNote" value="' + esc(v.note) + '"></div>' +
+    '<div class="row" style="margin-top:16px">' + (it ? '<button class="btn danger" id="iDel">删除</button>' : '') +
+    '<div class="spacer" style="flex:1"></div><button class="btn ghost" id="iCancel">取消</button><button class="btn" id="iOk">保存</button></div>';
+  openDlg(body);
+  var syncFee = function () {
+    var t = $('#iFeeType').value;
+    $('#iFeeLbl').textContent = t === 'rate' ? '每期费率 %' : t === 'once' ? '手续费金额' : '—';
+    $('#iFee').disabled = t === 'none';
+  };
+  $('#iFeeType').onchange = syncFee; syncFee();
+  $('#iCancel').onclick = function () { $('#dlg').close(); };
+  if (it) $('#iDel').onclick = function () {
+    if (!confirm('删除这笔分期？')) return;
+    S.installments = S.installments.filter(function (x) { return x !== it; });
+    save(); $('#dlg').close(); render();
+  };
+  $('#iOk').onclick = function () {
+    var total = parseNum($('#iTotal').value), periods = parseNum($('#iPeriods').value);
+    var start = $('#iStart').value.trim(), feeType = $('#iFeeType').value;
+    var fee = feeType === 'none' ? 0 : parseNum($('#iFee').value);
+    if (!(total > 0)) return alert('分期总额要大于 0');
+    if (!(periods >= 1) || periods % 1) return alert('期数要是正整数');
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(start)) return alert('首期月份格式：2026-10');
+    if (isNaN(fee) || fee < 0) return alert('手续费填不对');
+    var o = it || { id: 'inst_' + Date.now().toString(36) };
+    o.bank = $('#iBank').value.trim(); o.name = $('#iName').value.trim(); o.note = $('#iNote').value.trim();
+    o.total = total; o.periods = periods; o.start = start; o.feeType = feeType; o.fee = fee; o.ccy = $('#iCcy').value; o.accountId = $('#iAcc').value;
+    if (!it) S.installments.push(o);
+    save(); $('#dlg').close(); render();
+  };
+}
+
 /* ---------------- 渲染 / 事件 ---------------- */
 function render() {
   renderStatus();
@@ -505,7 +757,8 @@ function render() {
   $('#hdDate').textContent = cm ? cm.date : '';
   Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function (b) { b.classList.toggle('on', b.dataset.tab === ui.tab); });
   Array.prototype.forEach.call(document.querySelectorAll('#ccySeg button'), function (b) { b.classList.toggle('on', b.dataset.ccy === ui.ccy); });
-  view.innerHTML = ui.tab === 'overview' ? renderOverview() : ui.tab === 'entry' ? renderEntry() : renderAccounts();
+  view.innerHTML = ui.tab === 'overview' ? renderOverview() : ui.tab === 'entry' ? renderEntry() :
+    ui.tab === 'installments' ? renderInstallments() : renderAccounts();
   if (ui.tab === 'entry') renderFoot();
 }
 
@@ -549,7 +802,8 @@ view.addEventListener('keydown', function (e) {
 });
 function onInput(e) {
   var el = e.target, m = curMonth();
-  if (el.id === 'mDate') { m.date = el.value; m.id = el.value.slice(0, 7); ui.monthId = m.id; S.months.sort(function (x, y) { return x.id < y.id ? -1 : 1; }); save(); render(); return; }
+  /* 改日期只动 date，不动 id —— 所以改成别的月份也不会和已有记录撞键 */
+  if (el.id === 'mDate') { if (!el.value) return; m.date = el.value; S.months.sort(cmpMonth); save(); render(); return; }
   if (el.id === 'mRate') { var rr = parseNum(el.value); if (!isNaN(rr) && rr > 0) { m.rate = rr; save(); render(); } return; }
 
   var af = el.dataset.af, id = el.dataset.acc;
@@ -651,12 +905,12 @@ function act(name, accId, ev) {
   if (name === 'copyprev') {
     var pm = prevMonth(m.id);
     if (!pm) return alert('没有上一个月的数据');
-    if (!confirm('用上月（' + pm.date + '）的全部数值覆盖本月？')) return;
+    if (!confirm('用上一条记录（' + pm.date + '）的全部数值覆盖当前这条？')) return;
     m.values = JSON.parse(JSON.stringify(pm.values)); m.rate = pm.rate; m.carried = [];
     save(); render(); return;
   }
   if (name === 'delmonth') {
-    if (!confirm('删除 ' + m.date + ' 这个月的全部数据？不可撤销。')) return;
+    if (!confirm('删除 ' + m.date + ' 这条记录的全部数据？不可撤销。')) return;
     S.months = S.months.filter(function (x) { return x.id !== m.id; });
     ui.monthId = S.months.length ? S.months[S.months.length - 1].id : null;
     save(); render(); return;
@@ -672,6 +926,7 @@ function act(name, accId, ev) {
     var acc = S.accounts.find(function (x) { return x.id === accId; });
     if (!confirm('删除账户「' + acc.name + '」？所有月份中它的数据都会一并删除。\n\n若只是暂时不用，建议改为「停用」。')) return;
     S.accounts = S.accounts.filter(function (x) { return x.id !== accId; });
+    S.installments.forEach(function (x) { if (x.accountId === accId) x.accountId = ''; });
     S.months.forEach(function (x) { delete x.values[accId]; x.carried = x.carried.filter(function (c) { return c !== accId; }); });
     save(); render(); return;
   }
@@ -682,6 +937,8 @@ function act(name, accId, ev) {
     var tmp = S.accounts[i]; S.accounts[i] = S.accounts[j]; S.accounts[j] = tmp;
     save(); render(); return;
   }
+  if (name === 'addinst') return editInst(null);
+  if (name === 'editinst') return editInst(accId);
   if (name === 'export') return exportJSON();
   if (name === 'forcesync') {
     if (!S || Store.mode !== 'server') return;
@@ -705,13 +962,13 @@ function act(name, accId, ev) {
     save(); render(); return;
   }
 }
-function resetLabel() { return (window.SEED && window.SEED.months && window.SEED.months.length) ? '恢复为内置的初始数据' : '清空全部月份，只保留账户模板'; }
+function resetLabel() { return (window.SEED && window.SEED.months && window.SEED.months.length) ? '恢复为内置的初始数据' : '清空全部记录，只保留账户模板'; }
 
 function newMonth() {
   var last = S.months[S.months.length - 1];
   var d = new Date();
   var def = d.toISOString().slice(0, 10);
-  var body = '<h3>新建月份</h3>' +
+  var body = '<h3>新建记录</h3>' +
     '<div class="fld"><label>统计日期</label><input type="date" id="nmDate" value="' + def + '"></div>' +
     '<div class="fld"><label>汇率 1 HKD = ? CNY</label><input type="text" id="nmRate" value="' + (last ? last.rate : 0.89) + '"></div>' +
     (last ? '<div class="fld"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="nmCopy" checked style="width:auto"> 以 ' + last.date + ' 的数值为起点（推荐，只改变动的账户）</label></div>' : '') +
@@ -719,9 +976,12 @@ function newMonth() {
   openDlg(body);
   $('#nmCancel').onclick = function () { $('#dlg').close(); };
   $('#nmOk').onclick = function () {
-    var date = $('#nmDate').value, id = date.slice(0, 7);
+    var date = $('#nmDate').value;
     if (!date) return alert('请选择日期');
-    if (month(id)) return alert(id + ' 已存在，请直接在「录入」页修改。');
+    /* 同一个月可以有多条；只有「同一天」才提醒一句，因为那样两条在选择器里长得一样 */
+    if (S.months.some(function (x) { return x.date === date; }) &&
+      !confirm(date + ' 已经有一条记录了，仍然再建一条？')) return;
+    var id = newMonthId(date);
     var rate = parseNum($('#nmRate').value) || (last ? last.rate : 0.89);
     var copy = $('#nmCopy') && $('#nmCopy').checked;
     var values = {};
@@ -730,7 +990,7 @@ function newMonth() {
       if (copy && a.kind === 'receivable') values[a.id] = { hkd: 0, cny: 0 };
     });
     S.months.push({ id: id, date: date, rate: rate, values: values, carried: copy && last ? S.accounts.map(function (a) { return a.id; }).filter(function (x) { var v = values[x]; return v.hkd || v.cny; }) : [] });
-    S.months.sort(function (x, y) { return x.id < y.id ? -1 : 1; });
+    S.months.sort(cmpMonth);
     ui.monthId = id; ui.tab = 'entry'; save(); $('#dlg').close(); render();
   };
 }
@@ -752,7 +1012,7 @@ $('#fileInput').addEventListener('change', function (e) {
       var d = JSON.parse(fr.result);
       if (!d.accounts || !d.months) throw new Error('文件格式不对');
       S = normalize(d); ui.monthId = S.months.length ? S.months[S.months.length - 1].id : null;
-      save(); render(); alert('导入成功：' + S.accounts.length + ' 个账户，' + S.months.length + ' 个月份。');
+      save(); render(); alert('导入成功：' + S.accounts.length + ' 个账户，' + S.months.length + ' 条记录。');
     } catch (err) { alert('导入失败：' + err.message); }
     e.target.value = '';
   };
